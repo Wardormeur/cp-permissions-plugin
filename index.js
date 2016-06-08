@@ -47,11 +47,12 @@ module.exports = function (options) {
               msg.perm.hash = tokenizer.createToken(msg.perm.token);
               setContext(msg);
               this.prior(msg, function(a, b) {
-                console.log('respond', respond)
-                if(msg.transport$){
-                  console.log('token revoked');
-                  revokeToken(msg.id);
-                }
+                //  TODO: Find a way to revoke this token without breaking the wrapping :(
+                // console.log('respond', respond)
+                // if(msg.transport$){
+                //   console.log('token revoked');
+                //   revokeToken(msg.id);
+                // }
                 return respond(a, b);
               });
             } else {
