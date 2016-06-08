@@ -20,10 +20,10 @@ module.exports = function (options) {
   var wrapTokenization = function (done) {
     _.each(clients, function(lib){
       seneca.wrap({role: lib}, function(msg, respond){
-        console.log('original', msg);
+        // console.log('original', msg);
         if(_.isUndefined(msg.perm)){
           msg = getContext(msg);
-          console.log('extended', msg);
+          // console.log('extended', msg);
         }
         this.prior(msg, respond);
       });
@@ -42,10 +42,14 @@ module.exports = function (options) {
           (function (err, response){
             if(response && !_.isObject(response)){
               // Doesn't this mean that every call used on permissions as a check is allowed to do anything? MegaCare here
-              msg.perm = {};
-              msg.perm.token = Date.now().toString();
-              msg.perm.hash = tokenizer.createToken(msg.perm.token);
-              setContext(msg);
+              var msgPerm = {};
+              msgPerm.perm = {};
+              msgPerm.perm.token = Date.now().toString();
+              msgPerm.perm.hash = tokenizer.createToken(msgPerm.perm.token);
+              msgPerm.id = msg.id;
+              // Create the token for further use, we don't need to happend it to the object as it's lost anyway
+              // and create issues with API calls (visible param taken into account in query$)
+              setContext(msgPerm);
               this.prior(msg, function(a, b) {
                 //  TODO: Find a way to revoke this token without breaking the wrapping :(
                 // console.log('respond', respond)
@@ -62,6 +66,7 @@ module.exports = function (options) {
         );
       } else {
         setContext(msg);
+        delete msg.perm;
         this.prior(msg, respond);
       }
     });
@@ -75,6 +80,7 @@ module.exports = function (options) {
     return _.extend(msg, {perm: seneca.root.context[msg.id]});
   };
 
+  //  NOTE: Not used (yet)
   var revokeToken = function(id) {
     delete seneca.root.context[id];
   };
