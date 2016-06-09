@@ -10,90 +10,16 @@ module.exports = function (options) {
 
   //  Required params
   var config = require(options.config)();
-  var clients = options.clients;
 
-  seneca.add({role: 'cd-permissions', cmd: 'check_permissions'},
-    require('./lib/check_permissions').bind( _.extend(_.clone(this), {permConfig: config}) ));
-
-  seneca.root.context = {};
-
-  var wrapTokenization = function (done) {
-    _.each(clients, function(lib){
-      seneca.wrap({role: lib}, function(msg, respond){
-        // console.log('original', msg);
-        if(_.isUndefined(msg.perm)){
-          msg = getContext(msg);
-          // console.log('extended', msg);
-        }
-        this.prior(msg, respond);
-      });
-    });
-    done();
+  var addValidator = function (lib) {
+    var perms = {permConfig: {}};
+    perms.permConfig[lib] = config[lib];
+    seneca.add({role: lib, cmd: 'check_permissions'},
+    require('./lib/check_permissions').bind( _.extend(_.clone(seneca), perms) ));
   };
 
+  _.each(_.keys(config), addValidator);
 
-  var wrapLib = function (lib) {
-    seneca.wrap({role: lib}, function(msg, respond){
-      if(!msg.perm
-        || (!msg.perm.token && !msg.perm.hash)
-        || !tokenizer.isValid(msg.perm.token, msg.perm.hash)){
-        console.log('need validation');
-        seneca.act({role: 'cd-permissions', cmd: 'check_permissions', msg: msg},
-          (function (err, response){
-            if(response && !_.isObject(response)){
-              // Doesn't this mean that every call used on permissions as a check is allowed to do anything? MegaCare here
-              var msgPerm = {};
-              msgPerm.perm = {};
-              msgPerm.perm.token = Date.now().toString();
-              msgPerm.perm.hash = tokenizer.createToken(msgPerm.perm.token);
-              msgPerm.id = msg.id;
-              // Create the token for further use, we don't need to happend it to the object as it's lost anyway
-              // and create issues with API calls (visible param taken into account in query$)
-              setContext(msgPerm);
-              this.prior(msg, function(a, b) {
-                //  TODO: Find a way to revoke this token without breaking the wrapping :(
-                // console.log('respond', respond)
-                // if(msg.transport$){
-                //   console.log('token revoked');
-                //   revokeToken(msg.id);
-                // }
-                return respond(a, b);
-              });
-            } else {
-              respond(null, {http$: response});
-            }
-          }).bind(this)
-        );
-      } else {
-        setContext(msg);
-        delete msg.perm;
-        this.prior(msg, respond);
-      }
-    });
-  };
-
-  var setContext = function(msg) {
-    seneca.root.context[msg.id] = {token: msg.perm.token, hash: msg.perm.hash};
-  };
-
-  var getContext = function(msg) {
-    return _.extend(msg, {perm: seneca.root.context[msg.id]});
-  };
-
-  //  NOTE: Not used (yet)
-  var revokeToken = function(id) {
-    delete seneca.root.context[id];
-  };
-
-  async.waterfall(
-    [
-    function(done){
-      _.each(_.keys(config), wrapLib);
-      done();
-    },
-    wrapTokenization,
-  ]
-  );
 
   return {
     name: plugin

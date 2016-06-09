@@ -5,7 +5,7 @@ var seneca = require('seneca')({ transport: {
         port: 10304
       }
     },
-    strict: {add: false, result: false},
+    strict: {add: false, result: false}
   })
 
 seneca.use(require('../index'), {
@@ -13,9 +13,9 @@ seneca.use(require('../index'), {
   clients: ['display']
 });
 
-seneca.add({role: 'display', cmd: 'console'}, function (msg, respond) {
-  console.log(msg.info);
-  respond()
+seneca.add({role: 'display', cmd: 'console'}, function (args, done) {
+  console.log(args.info);
+  done()
 })
 
 seneca.listen()

@@ -5,7 +5,7 @@ var seneca = require('seneca')({ transport: {
         port: 10303
       }
     },
-    strict: {add: false, result: false},
+    strict: {add: false, result: false}
   })
 
 seneca.use(require('../index'), {
@@ -13,20 +13,22 @@ seneca.use(require('../index'), {
   clients: ['math', 'display']
 });
 
-seneca.add({role: 'math', cmd: 'sum'}, function (msg, respond) {
-  var sum = msg.left + msg.right
+seneca.add({role: 'math', cmd: 'sum'}, function (args, done) {
+  var sum = args.left + args.right
   seneca.act({role: 'math', cmd:'product', left: sum, right: sum}, function (err, response) {
-    respond(null, {answer: response.product})
+    if(err) return done(err);
+    done(null, {answer: response.answer})
   });
 })
 
-seneca.add({role: 'math', cmd: 'product'}, function (msg, respond) {
-  var product = msg.left * msg.right
-  respond(null, { answer: product })
+seneca.add({role: 'math', cmd: 'product'}, function (args, done) {
+  var product = args.left * args.right
+  done(null, { answer: product });
 })
 
 
 seneca.act({role: 'math', cmd: 'sum', left: 1, right: 2}, function (err, result){
+  if(err) console.log('err', err);
   seneca.act({role: 'display', cmd: 'console', info: result});
 })
 
