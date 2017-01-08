@@ -9,7 +9,6 @@ module.exports = function (options) {
 
   //  Required params
   var config = require(options.config)();
-
   var addValidator = function (lib) {
     var perms = {permConfig: {}};
     perms.permConfig[lib] = config[lib];
