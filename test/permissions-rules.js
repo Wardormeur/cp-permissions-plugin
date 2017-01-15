@@ -48,6 +48,33 @@ module.exports = function () {
             role: 'cp-test',
             cmd: 'customVal'
         }]
+      }],
+      'acting_as_crazy': [{
+        role: 'basic-user',
+        userType: 'parent',
+        customValidator: [{
+            role: 'cp-test',
+            cmd: 'customVal'
+        }
+        // , {
+        //     role: 'cp-test',
+        //     cmd: 'customVal2'
+        // }
+      ]
+      },
+      {
+        role: 'cdf-admin'
+      },
+      {
+        role: 'basic-user',
+        userType: 'mentor',
+        customValidator: [{
+            role: 'cp-test',
+            cmd: 'customValSSW'
+        }, {
+            role: 'cp-test',
+            cmd: 'customValCIHCB'
+        }]
       }
       ]
     }

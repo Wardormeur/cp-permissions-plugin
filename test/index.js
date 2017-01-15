@@ -23,10 +23,13 @@ describe('cp-perms', function () {
   var actForAdult = {role: 'cp-test', cmd: 'acting_as_adult'};
   var actForPro = {role: 'cp-test', cmd: 'acting_as_pro'};
   var actForSchyzo = {role: 'cp-test', cmd: 'acting_as_schyzo'};
+  var actForCrazy = {role: 'cp-test', cmd: 'acting_as_crazy'};
 
   var expectedResult = {'acting': 'as_normal'};
   var customValHandler = function (args, done) {
     var toTest = args.toTest;
+    console.log('customVal1', toTest === 'imabanana');
+    console.log('customVal1', toTest);
     return done(null, {'allowed': toTest === 'imabanana'});
   };
   var spied = spy(customValHandler);
@@ -117,6 +120,61 @@ describe('cp-perms', function () {
     async.waterfall([basicUser, cdfAdmin, mentor], done);
 
   });
+
+  // In this scenario, we set a scenario where only the last customVal is valid in order to verify that every customVal is called
+  it('should allow a list of profiles with multiple customVals', function (done) {
+    // Setup spies
+    var customValHandler2 = function (args, done) {
+      var toTest = args.toTest2;
+      console.log('ssw', toTest === 'sicksadworld');
+      return done(null, {'allowed': toTest === 'sicksadworld'});
+    };
+    var spyHandler2 = spy(customValHandler2);
+    seneca.add({role: 'cp-test', cmd: 'customValSSW'}, spyHandler2);
+
+    var customValHandler3 = function (args, done) {
+      var toTest = args.toTest3;
+      return done(null, {'allowed': toTest === 'canihazcheezburger'});
+    };
+    var spyHandler3 = spy(customValHandler3);
+    seneca.add({role: 'cp-test', cmd: 'customValCIHCB'}, spyHandler3);
+
+    // Do the calls !
+    var basicUser = function (next) {
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['basic-user'], initUserType: ['parent']},
+       toTest: 'imabanana', toTest2: 'sicksadworld'}, function (err, allowance) {
+        if (err) return done(err);
+        console.log('result', allowance, spied.callCount, spied.calledOnce);
+        expect(spied.calledOnce).to.be.true;
+        // expect(spyHandler2.calledOnce).to.be.true;
+        // expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
+        next();
+      });
+    };
+    var cdfAdmin = function (next) {
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['cdf-admin']}}, function (err, allowance) {
+        if (err) return done(err);
+        expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
+        next();
+      });
+    };
+    var mentor = function (next) {
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['basic-user'], initUserType: ['mentor']}, toTest2: 'sicksadworld',  toTest3: 'canihazcheezburger'}, function (err, allowance) {
+        if (err) return done(err);
+        expect(spyHandler2.callCount).to.be.equal(2);
+        expect(spyHandler3.callCount).to.be.equal(1);
+        expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
+        next();
+      });
+    };
+    async.waterfall([
+      basicUser,
+      cdfAdmin,
+      // mentor
+    ], done);
+
+  });
+
 
   /***** ERROR HANDLING ***/
 
