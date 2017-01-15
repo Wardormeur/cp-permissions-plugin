@@ -28,8 +28,6 @@ describe('cp-perms', function () {
   var expectedResult = {'acting': 'as_normal'};
   var customValHandler = function (args, done) {
     var toTest = args.toTest;
-    console.log('customVal1', toTest === 'imabanana');
-    console.log('customVal1', toTest);
     return done(null, {'allowed': toTest === 'imabanana'});
   };
   var spied = spy(customValHandler);
@@ -99,6 +97,7 @@ describe('cp-perms', function () {
     var basicUser = function (next) {
       seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForSchyzo.cmd, user: {roles: ['basic-user'], initUserType: ['parent-guardian']}, toTest: 'imabanana'}, function (err, allowance) {
         if (err) return done(err);
+        expect(spied.calledOnce).to.be.true;
         expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
         next();
       });
@@ -126,7 +125,6 @@ describe('cp-perms', function () {
     // Setup spies
     var customValHandler2 = function (args, done) {
       var toTest = args.toTest2;
-      console.log('ssw', toTest === 'sicksadworld');
       return done(null, {'allowed': toTest === 'sicksadworld'});
     };
     var spyHandler2 = spy(customValHandler2);
@@ -141,13 +139,12 @@ describe('cp-perms', function () {
 
     // Do the calls !
     var basicUser = function (next) {
-      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['basic-user'], initUserType: ['parent']},
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['basic-user'], initUserType: ['parent-guardian']},
        toTest: 'imabanana', toTest2: 'sicksadworld'}, function (err, allowance) {
         if (err) return done(err);
-        console.log('result', allowance, spied.callCount, spied.calledOnce);
         expect(spied.calledOnce).to.be.true;
-        // expect(spyHandler2.calledOnce).to.be.true;
-        // expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
+        expect(spyHandler2.calledOnce).to.be.true;
+        expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
         next();
       });
     };
@@ -161,7 +158,7 @@ describe('cp-perms', function () {
     var mentor = function (next) {
       seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['basic-user'], initUserType: ['mentor']}, toTest2: 'sicksadworld',  toTest3: 'canihazcheezburger'}, function (err, allowance) {
         if (err) return done(err);
-        expect(spyHandler2.callCount).to.be.equal(2);
+        expect(spyHandler2.callCount).to.be.equal(3); // basicUser 1st profile + this call basic-user 1st profile + this call last profile
         expect(spyHandler3.callCount).to.be.equal(1);
         expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
         next();
@@ -170,11 +167,15 @@ describe('cp-perms', function () {
     async.waterfall([
       basicUser,
       cdfAdmin,
-      // mentor
+      mentor
     ], done);
 
   });
 
+  it('should not modify the config after all those calls', function (done) {
+    expect(conf).to.be.deep.equal(seneca.export('cd-permissions/config'));
+    done();
+  });
 
   /***** ERROR HANDLING ***/
 

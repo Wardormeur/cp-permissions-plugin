@@ -50,15 +50,14 @@ module.exports = function () {
       }],
       'acting_as_crazy': [{
         role: 'basic-user',
-        userType: 'parent',
+        userType: 'parent-guardian',
         customValidator: [{
             role: 'cp-test',
             cmd: 'customVal'
+        }, {
+            role: 'cp-test',
+            cmd: 'customValSSW'
         }
-        // , {
-        //     role: 'cp-test',
-        //     cmd: 'customVal2'
-        // }
       ]
       },
       {
