@@ -23,6 +23,7 @@ describe('cp-perms', function () {
   var actForAdult = {role: 'cp-test', cmd: 'acting_as_adult'};
   var actForPro = {role: 'cp-test', cmd: 'acting_as_pro'};
   var actForSchyzo = {role: 'cp-test', cmd: 'acting_as_schyzo'};
+  var actForCrazy = {role: 'cp-test', cmd: 'acting_as_crazy'};
 
   var expectedResult = {'acting': 'as_normal'};
   var customValHandler = function (args, done) {
@@ -94,8 +95,9 @@ describe('cp-perms', function () {
 
   it('should allow a list of profiles', function (done) {
     var basicUser = function (next) {
-      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForSchyzo.cmd, user: {roles: ['basic-user'], initUserType: ['parent']}, toTest: 'imabanana'}, function (err, allowance) {
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForSchyzo.cmd, user: {roles: ['basic-user'], initUserType: ['parent-guardian']}, toTest: 'imabanana'}, function (err, allowance) {
         if (err) return done(err);
+        expect(spied.calledOnce).to.be.true;
         expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
         next();
       });
@@ -116,6 +118,63 @@ describe('cp-perms', function () {
     };
     async.waterfall([basicUser, cdfAdmin, mentor], done);
 
+  });
+
+  // In this scenario, we set a scenario where only the last customVal is valid in order to verify that every customVal is called
+  it('should allow a list of profiles with multiple customVals', function (done) {
+    // Setup spies
+    var customValHandler2 = function (args, done) {
+      var toTest = args.toTest2;
+      return done(null, {'allowed': toTest === 'sicksadworld'});
+    };
+    var spyHandler2 = spy(customValHandler2);
+    seneca.add({role: 'cp-test', cmd: 'customValSSW'}, spyHandler2);
+
+    var customValHandler3 = function (args, done) {
+      var toTest = args.toTest3;
+      return done(null, {'allowed': toTest === 'canihazcheezburger'});
+    };
+    var spyHandler3 = spy(customValHandler3);
+    seneca.add({role: 'cp-test', cmd: 'customValCIHCB'}, spyHandler3);
+
+    // Do the calls !
+    var basicUser = function (next) {
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['basic-user'], initUserType: ['parent-guardian']},
+       toTest: 'imabanana', toTest2: 'sicksadworld'}, function (err, allowance) {
+        if (err) return done(err);
+        expect(spied.calledOnce).to.be.true;
+        expect(spyHandler2.calledOnce).to.be.true;
+        expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
+        next();
+      });
+    };
+    var cdfAdmin = function (next) {
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['cdf-admin']}}, function (err, allowance) {
+        if (err) return done(err);
+        expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
+        next();
+      });
+    };
+    var mentor = function (next) {
+      seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForCrazy.cmd, user: {roles: ['basic-user'], initUserType: ['mentor']}, toTest2: 'sicksadworld',  toTest3: 'canihazcheezburger'}, function (err, allowance) {
+        if (err) return done(err);
+        expect(spyHandler2.callCount).to.be.equal(3); // basicUser 1st profile + this call basic-user 1st profile + this call last profile
+        expect(spyHandler3.callCount).to.be.equal(1);
+        expect(allowance).to.be.deep.equal({allowed: true}).and.to.satisfy(isValidFormat);
+        next();
+      });
+    };
+    async.waterfall([
+      basicUser,
+      cdfAdmin,
+      mentor
+    ], done);
+
+  });
+
+  it('should not modify the config after all those calls', function (done) {
+    expect(conf).to.be.deep.equal(seneca.export('cd-permissions/config'));
+    done();
   });
 
   /***** ERROR HANDLING ***/
@@ -140,7 +199,7 @@ describe('cp-perms', function () {
 
   // Since everything is casted to array, we can allow ourselves to simply send a sigle userType
   it('should be allowing a string instead of an array with a proper usertype', function (done) {
-    seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForAdult.cmd, user: {initUserType: 'parent'}}, function (err, allowance) {
+    seneca.act({role: 'cp-test', cmd: 'check_permissions', act: actForAdult.cmd, user: {initUserType: 'parent-guardian'}}, function (err, allowance) {
       expect(allowance).to.satisfy(isValidFormat);
       expect(allowance).to.be.deep.equal({allowed: true});
       done();

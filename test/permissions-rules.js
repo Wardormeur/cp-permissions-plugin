@@ -7,7 +7,6 @@ module.exports = function () {
 * }
 */
 
-//  TODO:50 ensure is_own_dojo for dojo-admin && belongs_to for champion
 
   return {
     'cp-test':{
@@ -21,7 +20,7 @@ module.exports = function () {
         userType: 'mentor'
       },
       {
-        userType: 'parent'
+        userType: 'parent-guardian'
       }],
       'acting_as_pro': [{
         role: 'basic-user',
@@ -32,7 +31,7 @@ module.exports = function () {
       }],
       'acting_as_schyzo': [{
         role: 'basic-user',
-        userType: 'parent',
+        userType: 'parent-guardian',
         customValidator: [{
             role: 'cp-test',
             cmd: 'customVal'
@@ -47,6 +46,32 @@ module.exports = function () {
         customValidator: [{
             role: 'cp-test',
             cmd: 'customVal'
+        }]
+      }],
+      'acting_as_crazy': [{
+        role: 'basic-user',
+        userType: 'parent-guardian',
+        customValidator: [{
+            role: 'cp-test',
+            cmd: 'customVal'
+        }, {
+            role: 'cp-test',
+            cmd: 'customValSSW'
+        }
+      ]
+      },
+      {
+        role: 'cdf-admin'
+      },
+      {
+        role: 'basic-user',
+        userType: 'mentor',
+        customValidator: [{
+            role: 'cp-test',
+            cmd: 'customValSSW'
+        }, {
+            role: 'cp-test',
+            cmd: 'customValCIHCB'
         }]
       }
       ]
