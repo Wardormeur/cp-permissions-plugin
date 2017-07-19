@@ -1,6 +1,6 @@
 {
   "name": "cp-permissions-plugin",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Handle permissions of users with a configuration-oriented behavior",
   "main": "index.js",
   "repository": {
